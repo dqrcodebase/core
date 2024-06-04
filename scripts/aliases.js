@@ -10,6 +10,7 @@ const resolveEntryForPkg = (/** @type {string} */ p) =>
     `../../packages/${p}/src/index.ts`,
   )
 
+  
 const dirs = readdirSync(new URL('../packages', import.meta.url))
 
 /** @type {Record<string, string>} */
