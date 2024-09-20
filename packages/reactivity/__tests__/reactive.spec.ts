@@ -2,6 +2,8 @@ import { isRef, ref } from '../src/ref'
 import {
   isProxy,
   isReactive,
+  isReadonly,
+  isShallow,
   markRaw,
   reactive,
   readonly,
@@ -291,6 +293,13 @@ describe('reactivity/reactive', () => {
     expect(() => markRaw(obj)).not.toThrowError()
   })
 
+  test('markRaw should not redefine on an marked object', () => {
+    const obj = markRaw({ foo: 1 })
+    const raw = markRaw(obj)
+    expect(raw).toBe(obj)
+    expect(() => markRaw(obj)).not.toThrowError()
+  })
+
   test('should not observe non-extensible objects', () => {
     const obj = reactive({
       foo: Object.preventExtensions({ a: 1 }),
@@ -358,5 +367,35 @@ describe('reactivity/reactive', () => {
 
     const c = computed(() => {})
     expect(isProxy(c)).toBe(false)
+  })
+
+  test('The results of the shallow and readonly assignments are the same (Map)', () => {
+    const map = reactive(new Map())
+    map.set('foo', shallowReactive({ a: 2 }))
+    expect(isShallow(map.get('foo'))).toBe(true)
+
+    map.set('bar', readonly({ b: 2 }))
+    expect(isReadonly(map.get('bar'))).toBe(true)
+  })
+
+  test('The results of the shallow and readonly assignments are the same (Set)', () => {
+    const set = reactive(new Set())
+    set.add(shallowReactive({ a: 2 }))
+    set.add(readonly({ b: 2 }))
+    let count = 0
+    for (const i of set) {
+      if (count === 0) expect(isShallow(i)).toBe(true)
+      else expect(isReadonly(i)).toBe(true)
+      count++
+    }
+  })
+
+  // #11696
+  test('should use correct receiver on set handler for refs', () => {
+    const a = reactive(ref(1))
+    effect(() => a.value)
+    expect(() => {
+      a.value++
+    }).not.toThrow()
   })
 })
